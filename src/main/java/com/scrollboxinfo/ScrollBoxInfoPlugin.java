@@ -252,39 +252,68 @@ public void onGameTick(GameTick tick)
 			boolean scrollBoxEnteredInv = inventory.scrollBoxCount() > previousInventoryScrollBoxCount.getOrDefault(tier, 0);
 			boolean scrollBoxLeftInv = inventory.scrollBoxCount() < previousInventoryScrollBoxCount.getOrDefault(tier, 0);
 
-			boolean countChallengeScrolls = tier == ClueTier.MASTER;
+			boolean bankedClueScroll = previousBankClueScrollState.getOrDefault(tier, false);
+			boolean bankedChallengeScroll = previousBankChallengeScrollState.getOrDefault(tier, false);
 
 			int count = inventory.scrollBoxCount();
 			if (inventory.hasClueScroll())
 				count++;
-			if (countChallengeScrolls && inventory.hasChallengeScroll())
+			if (inventory.hasChallengeScroll())
 				count++;
 
 			if (bankContainer != null) {
+				bankedClueScroll = bank.hasClueScroll();
+				bankedChallengeScroll = bank.hasChallengeScroll();
+
 				int bankCount = bank.scrollBoxCount();
-				bankCount += bank.hasClueScroll() ? 1 : 0;
-				bankCount += countChallengeScrolls && bank.hasChallengeScroll() ? 1 : 0;
+				bankCount += bankedClueScroll ? 1 : 0;
+				bankCount += bankedChallengeScroll ? 1 : 0;
+
+				if (bankedChallengeScroll && bankedClueScroll)
+					bankCount -= 1;
 
 				clueCountStorage.setBankCount(tier, bankCount);
 			} else if (bankWasOpenLastTick) {
 				int assumedBankCount= clueCountStorage.getBankCount(tier);
-				if (clueEnteredInv)
-					assumedBankCount -= 1;
-				if (countChallengeScrolls && challengeEnteredInv)
-					assumedBankCount -= 1;
 				if (clueLeftInv)
+				{
+					bankedClueScroll = true;
 					assumedBankCount += 1;
-				if (countChallengeScrolls && challengeLeftInv)
+				}
+				else if (clueEnteredInv) {
+					bankedClueScroll = false;
+					assumedBankCount -= 1;
+				}
+				if (challengeEnteredInv)
+				{
+					bankedChallengeScroll = false;
+					assumedBankCount -= 1;
+				}
+				else if (challengeLeftInv)
+				{
+					bankedChallengeScroll = true;
 					assumedBankCount += 1;
+				}
 				if (scrollBoxLeftInv)
 					assumedBankCount += 1;
-				if (scrollBoxEnteredInv)
+				else if (scrollBoxEnteredInv)
 					assumedBankCount -= 1;
+
+				if (bankedChallengeScroll && bankedClueScroll)
+					assumedBankCount -= 1;
+
 				clueCountStorage.setBankCount(tier, assumedBankCount);
 			}
 
 			count += clueCountStorage.getBankCount(tier);
+			if ((inventory.hasClueScroll() && inventory.hasChallengeScroll())
+				|| (inventory.hasClueScroll() && bankedChallengeScroll)
+				|| (inventory.hasChallengeScroll() && bankedClueScroll))
+				count -= 1;
 			clueCountStorage.setCount(tier, count);
+
+			previousBankClueScrollState.put(tier, bankedClueScroll);
+			previousBankChallengeScrollState.put(tier, bankedChallengeScroll);
 			previousClueScrollInventoryState.put(tier, inventory.hasClueScroll());
 			previousChallengeScrollInventoryState.put(tier, inventory.hasChallengeScroll());
 			previousInventoryScrollBoxCount.put(tier, inventory.scrollBoxCount());
