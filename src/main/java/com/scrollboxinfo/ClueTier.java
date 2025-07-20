@@ -7,5 +7,5 @@ public enum ClueTier
     MEDIUM,
     HARD,
     ELITE,
-    MASTER;
+    MASTER
 }

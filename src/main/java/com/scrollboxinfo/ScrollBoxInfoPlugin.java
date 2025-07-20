@@ -67,8 +67,6 @@ public class ScrollBoxInfoPlugin extends Plugin
 	private final Map<ClueTier, Boolean> previousBankClueScrollState = new HashMap<>();
 	private final Map<ClueTier, Boolean> previousBankChallengeScrollState = new HashMap<>();
 
-	private boolean doRecount = false;
-
 	private static class ClueState {
 		boolean hadClueScroll;
 		boolean hadChallengeScroll;
