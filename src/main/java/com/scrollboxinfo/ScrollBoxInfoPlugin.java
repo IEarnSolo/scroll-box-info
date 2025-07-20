@@ -63,10 +63,11 @@ public class ScrollBoxInfoPlugin extends Plugin
 	private boolean hadInventoryChallengeScroll = false;
 	private final Map<ClueTier, Boolean> previousClueScrollInventoryState = new HashMap<>();
 	private final Map<ClueTier, Boolean> previousChallengeScrollInventoryState = new HashMap<>();
+	private final Map<ClueTier, Integer> previousInventoryScrollBoxCount = new HashMap<>();
 	private final Map<ClueTier, Boolean> previousBankClueScrollState = new HashMap<>();
 	private final Map<ClueTier, Boolean> previousBankChallengeScrollState = new HashMap<>();
 
-
+	private boolean doRecount = false;
 
 	private static class ClueState {
 		boolean hadClueScroll;
@@ -236,116 +237,57 @@ public void onGameTick(GameTick tick)
 	@Subscribe
 	public void onItemContainerChanged(ItemContainerChanged event)
 	{
-		ItemContainer inventory = client.getItemContainer(InventoryID.INVENTORY);
-		ItemContainer bank = client.getItemContainer(InventoryID.BANK);
+		ItemContainer inventoryContainer = client.getItemContainer(InventoryID.INVENTORY);
+		ItemContainer bankContainer = client.getItemContainer(InventoryID.BANK);
 
 		for (ClueTier tier : ClueTier.values())
 		{
-			ClueCounter.ClueCounts inv = clueCounter.getClueCounts(tier, inventory);
-			ClueCounter.ClueCounts bnk = clueCounter.getClueCounts(tier, bank);
+			ClueCounter.ClueCounts inventory = clueCounter.getClueCounts(tier, inventoryContainer);
+			ClueCounter.ClueCounts bank = clueCounter.getClueCounts(tier, bankContainer);
 
-			boolean invHasClue = inv.hasClueScroll();
-			boolean invHasChallenge = inv.hasChallengeScroll();
-			boolean bankHasClue = bnk.hasClueScroll();
-			boolean bankHasChallenge = bnk.hasChallengeScroll();
-			int scrollBoxesInInv = inv.scrollBoxCount();
-			int scrollBoxesInBank = bnk.scrollBoxCount();
+			boolean clueEnteredInv = inventory.hasClueScroll() && !previousClueScrollInventoryState.getOrDefault(tier, false);
+			boolean clueLeftInv = !inventory.hasClueScroll() && previousClueScrollInventoryState.getOrDefault(tier, false);
+			boolean challengeEnteredInv = inventory.hasChallengeScroll() && !previousChallengeScrollInventoryState.getOrDefault(tier, false);
+			boolean challengeLeftInv = !inventory.hasChallengeScroll() && previousChallengeScrollInventoryState.getOrDefault(tier, false);
+			boolean scrollBoxEnteredInv = inventory.scrollBoxCount() > previousInventoryScrollBoxCount.getOrDefault(tier, 0);
+			boolean scrollBoxLeftInv = inventory.scrollBoxCount() < previousInventoryScrollBoxCount.getOrDefault(tier, 0);
 
-			boolean hasClueOrChallengeScrollInBank = Boolean.TRUE.equals(
-					configManager.getRSProfileConfiguration("scrollboxinfo", "hasClueOrChallengeScrollInBank_" + tier.name(), Boolean.class)
-			);
+			boolean countChallengeScrolls = tier == ClueTier.MASTER;
 
-			int clueValueInv = (invHasClue || invHasChallenge) ? 1 : 0;
-			int clueValueBank = (bankHasClue || bankHasChallenge) ? 1 : 0;
+			int count = inventory.scrollBoxCount();
+			if (inventory.hasClueScroll())
+				count++;
+			if (countChallengeScrolls && inventory.hasChallengeScroll())
+				count++;
 
-			int newInvCount = scrollBoxesInInv + clueValueInv;
-			int newBankCount = scrollBoxesInBank + clueValueBank;
-			int oldInvCount = previousInventoryCounts.getOrDefault(tier, 0);
-			boolean previousBankHasClue = previousBankClueScrollState.getOrDefault(tier, false);
-			boolean previousBankHasChallenge = previousBankChallengeScrollState.getOrDefault(tier, false);
-			previousBankClueScrollState.put(tier, bankHasClue);
-			previousBankChallengeScrollState.put(tier, bankHasChallenge);
+			if (bankContainer != null) {
+				int bankCount = bank.scrollBoxCount();
+				bankCount += bank.hasClueScroll() ? 1 : 0;
+				bankCount += countChallengeScrolls && bank.hasChallengeScroll() ? 1 : 0;
 
-			// Compare current and previous states
-			boolean clueEnteredInv = invHasClue && !previousClueScrollInventoryState.getOrDefault(tier, false);
-			boolean challengeEnteredInv = invHasChallenge && !previousChallengeScrollInventoryState.getOrDefault(tier, false);
-			boolean clueLeftInv = !invHasClue && previousClueScrollInventoryState.getOrDefault(tier, false);
-			boolean challengeLeftInv = !invHasChallenge && previousChallengeScrollInventoryState.getOrDefault(tier, false);
-
-			int delta = newInvCount - oldInvCount;
-
-			if (bank != null)
-			{
-				boolean hasAnyScroll = bankHasClue || bankHasChallenge;
-				configManager.setRSProfileConfiguration("scrollboxinfo", "hasClueOrChallengeScrollInBank_" + tier.name(), hasAnyScroll);
-				previousBankClueScrollState.put(tier, bankHasClue);
-				previousBankChallengeScrollState.put(tier, bankHasChallenge);
-				clueCountStorage.setBankCount(tier, newBankCount);
-				log.info("{}: Bank open - bank count updated directly: {}", tier.name(), newBankCount);
-				log.info("{}: Bank open - hasClueOrChallengeScrollInBank_" + tier.name() + ": {}", tier.name(), hasAnyScroll);
-			}
-			else if (depositBoxIsOpen || depositBoxWasOpenLastTick || bankWasOpenLastTick)
-			{
-				int oldBankCount = clueCountStorage.getBankCount(tier);
-				int assumedBankCount = oldBankCount - delta;
-
-				boolean bothScrollsEnteredInv = clueEnteredInv && challengeEnteredInv;
-				boolean bothScrollsLeftInv = clueLeftInv && challengeLeftInv;
-
-				boolean bankHadOnlyOneScroll =
-						(previousBankHasClue ^ previousBankHasChallenge); // only one of them was true
-
-				// Determine bank scroll flag & count change
-				if (bothScrollsEnteredInv ||
-						(clueEnteredInv && !previousBankHasChallenge) ||
-						(challengeEnteredInv && !previousBankHasClue))
-				{
-					// Withdraw - remove flag, decrease bank count by 1
-					configManager.setRSProfileConfiguration("scrollboxinfo", "hasClueOrChallengeScrollInBank_" + tier.name(), false);
-					log.info("{}: Withdrew scroll - no scrolls remain in bank, disabling flag", tier.name());
-					if (hasClueOrChallengeScrollInBank)
-					{
-						assumedBankCount = Math.max(assumedBankCount - 1, 0);
-						clueCountStorage.setBankCount(tier, assumedBankCount);
-						newInvCount++;
-					}
-				}
-				else if (bothScrollsLeftInv ||
-						(clueLeftInv && !previousBankHasChallenge) ||
-						(challengeLeftInv && !previousBankHasClue))
-				{
-					// Deposit - set flag, increase bank count by 1
-					configManager.setRSProfileConfiguration("scrollboxinfo", "hasClueOrChallengeScrollInBank_" + tier.name(), true);
-					log.info("{}: Deposited scroll - enabling hasClueOrChallengeScrollInBank flag", tier.name());
-					if (!hasClueOrChallengeScrollInBank)
-					{
-						assumedBankCount++;
-						clueCountStorage.setBankCount(tier, assumedBankCount);
-						newInvCount--;
-					}
-				} else {
-
-					clueCountStorage.setBankCount(tier, assumedBankCount);
-				}
+				clueCountStorage.setBankCount(tier, bankCount);
+			} else if (bankWasOpenLastTick) {
+				int assumedBankCount= clueCountStorage.getBankCount(tier);
+				if (clueEnteredInv)
+					assumedBankCount -= 1;
+				if (countChallengeScrolls && challengeEnteredInv)
+					assumedBankCount -= 1;
+				if (clueLeftInv)
+					assumedBankCount += 1;
+				if (countChallengeScrolls && challengeLeftInv)
+					assumedBankCount += 1;
+				if (scrollBoxLeftInv)
+					assumedBankCount += 1;
+				if (scrollBoxEnteredInv)
+					assumedBankCount -= 1;
+				clueCountStorage.setBankCount(tier, assumedBankCount);
 			}
 
-			// Adjust inventory count when clue and challenge are split between bank and inv
-			if ((invHasClue && bankHasChallenge) || (invHasChallenge && bankHasClue))
-			{
-				newInvCount -= 1;
-			}
-			else if (bank == null && hasClueOrChallengeScrollInBank && (invHasClue || invHasChallenge) && (!clueEnteredInv || !challengeEnteredInv))
-			{
-				newInvCount -= 1;
-				log.info("Bank closed - using saved clue/challenge scroll state for {}", tier.name());
-			}
-
-			previousInventoryCounts.put(tier, newInvCount);
-			clueCountStorage.setCount(tier, newInvCount);
-
-			// Save scroll presence state for next comparison
-			previousClueScrollInventoryState.put(tier, invHasClue);
-			previousChallengeScrollInventoryState.put(tier, invHasChallenge);
+			count += clueCountStorage.getBankCount(tier);
+			clueCountStorage.setCount(tier, count);
+			previousClueScrollInventoryState.put(tier, inventory.hasClueScroll());
+			previousChallengeScrollInventoryState.put(tier, inventory.hasChallengeScroll());
+			previousInventoryScrollBoxCount.put(tier, inventory.scrollBoxCount());
 		}
 	}
 

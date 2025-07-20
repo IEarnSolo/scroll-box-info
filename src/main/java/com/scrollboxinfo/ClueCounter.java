@@ -25,7 +25,7 @@ public class ClueCounter
 
     public int getClueCounts(ClueTier tier)
     {
-        return storage.getCount(tier) + storage.getBankCount(tier);
+        return storage.getCount(tier);
     }
 
     public ClueCounts getClueCounts(ClueTier tier, ItemContainer container)
