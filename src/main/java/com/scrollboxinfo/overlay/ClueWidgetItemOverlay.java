@@ -181,17 +181,20 @@ public class ClueWidgetItemOverlay extends WidgetItemOverlay
 
     private boolean isScrollBox(int itemId)
     {
-        return switch (itemId)
+        switch (itemId)
         {
-            case ItemID.SCROLL_BOX_BEGINNER,
-                    ItemID.SCROLL_BOX_EASY,
-                    ItemID.SCROLL_BOX_MEDIUM,
-                    ItemID.SCROLL_BOX_HARD,
-                    ItemID.SCROLL_BOX_ELITE,
-                    ItemID.SCROLL_BOX_MASTER -> true;
-            default -> false;
-        };
+            case ItemID.SCROLL_BOX_BEGINNER:
+            case ItemID.SCROLL_BOX_EASY:
+            case ItemID.SCROLL_BOX_MEDIUM:
+            case ItemID.SCROLL_BOX_HARD:
+            case ItemID.SCROLL_BOX_ELITE:
+            case ItemID.SCROLL_BOX_MASTER:
+                return true;
+            default:
+                return false;
+        }
     }
+
 
     public void resetMarkedStacks()
     {

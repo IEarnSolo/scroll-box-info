@@ -37,14 +37,27 @@ public class ClueCountStorage
 
         switch (tier)
         {
-            case BEGINNER -> config.setBankedBeginner(count);
-            case EASY -> config.setBankedEasy(count);
-            case MEDIUM -> config.setBankedMedium(count);
-            case HARD -> config.setBankedHard(count);
-            case ELITE -> config.setBankedElite(count);
-            case MASTER -> config.setBankedMaster(count);
+            case BEGINNER:
+                config.setBankedBeginner(count);
+                break;
+            case EASY:
+                config.setBankedEasy(count);
+                break;
+            case MEDIUM:
+                config.setBankedMedium(count);
+                break;
+            case HARD:
+                config.setBankedHard(count);
+                break;
+            case ELITE:
+                config.setBankedElite(count);
+                break;
+            case MASTER:
+                config.setBankedMaster(count);
+                break;
         }
     }
+
 
     public void loadBankCountsFromConfig()
     {

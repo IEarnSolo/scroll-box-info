@@ -13,7 +13,6 @@ public class ClueCounter
     private final Client client;
     private final ClueCountStorage storage;
     private final ItemManager itemManager;
-    public record ClueCounts(int scrollBoxCount, boolean hasClueScroll, boolean hasChallengeScroll) {}
 
     @Inject
     public ClueCounter(Client client, ClueCountStorage storage, ItemManager itemManager)

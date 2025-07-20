@@ -28,21 +28,28 @@ public class StackLimitCalculator
 
     private static int getTierBonus(ClueTier tier, Client client)
     {
-        return switch (tier)
+        switch (tier)
         {
-            case BEGINNER -> client.getVarbitValue(SCROLL_CASE_BEGINNER_MINOR)
-                    + client.getVarbitValue(SCROLL_CASE_BEGINNER_MAJOR);
-            case EASY -> client.getVarbitValue(SCROLL_CASE_EASY_MINOR)
-                    + client.getVarbitValue(SCROLL_CASE_EASY_MAJOR);
-            case MEDIUM -> client.getVarbitValue(SCROLL_CASE_MEDIUM_MINOR)
-                    + client.getVarbitValue(SCROLL_CASE_MEDIUM_MAJOR);
-            case HARD -> client.getVarbitValue(SCROLL_CASE_HARD_MINOR)
-                    + client.getVarbitValue(SCROLL_CASE_HARD_MAJOR);
-            case ELITE -> client.getVarbitValue(SCROLL_CASE_ELITE_MINOR)
-                    + client.getVarbitValue(SCROLL_CASE_ELITE_MAJOR);
-            case MASTER -> client.getVarbitValue(SCROLL_CASE_MASTER_MINOR)
-                    + client.getVarbitValue(SCROLL_CASE_MASTER_MAJOR);
-            default -> 0;
-        };
+            case BEGINNER:
+                return client.getVarbitValue(SCROLL_CASE_BEGINNER_MINOR)
+                        + client.getVarbitValue(SCROLL_CASE_BEGINNER_MAJOR);
+            case EASY:
+                return client.getVarbitValue(SCROLL_CASE_EASY_MINOR)
+                        + client.getVarbitValue(SCROLL_CASE_EASY_MAJOR);
+            case MEDIUM:
+                return client.getVarbitValue(SCROLL_CASE_MEDIUM_MINOR)
+                        + client.getVarbitValue(SCROLL_CASE_MEDIUM_MAJOR);
+            case HARD:
+                return client.getVarbitValue(SCROLL_CASE_HARD_MINOR)
+                        + client.getVarbitValue(SCROLL_CASE_HARD_MAJOR);
+            case ELITE:
+                return client.getVarbitValue(SCROLL_CASE_ELITE_MINOR)
+                        + client.getVarbitValue(SCROLL_CASE_ELITE_MAJOR);
+            case MASTER:
+                return client.getVarbitValue(SCROLL_CASE_MASTER_MINOR)
+                        + client.getVarbitValue(SCROLL_CASE_MASTER_MAJOR);
+            default:
+                return 0;
+        }
     }
 }
