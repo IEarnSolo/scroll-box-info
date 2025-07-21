@@ -88,7 +88,7 @@ public interface ScrollBoxInfoConfig extends Config
 
 	@ConfigItem(
 			keyName = "markFullStack",
-			name = "Mark full stacks",
+			name = "Mark full stacks red",
 			description = "Mark the scroll box amount red when you’ve hit your stack limit",
 			position = 11,
 			section = itemOverlay

@@ -33,4 +33,3 @@ public class StackLimitInfoBox extends InfoBox {
         return "Your " + tier.name().toLowerCase() + " clue stack is full.";
     }
 }
-

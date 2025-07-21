@@ -115,7 +115,6 @@ public class ClueWidgetItemOverlay extends WidgetItemOverlay
             label.render(graphics);
         }
 
-
         Point mousePos = client.getMouseCanvasPosition();
         if (!widgetItem.getCanvasBounds().contains(mousePos.getX(), mousePos.getY())) {
             return;

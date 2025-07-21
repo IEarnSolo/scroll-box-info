@@ -53,6 +53,13 @@ public class ScrollBoxInfoPlugin extends Plugin
 	private ConfigManager configManager;
 	@Inject
 	private ClueUtils clueUtils;
+	@Inject
+	private InfoBoxManager infoBoxManager;
+	@Inject
+	private ItemManager itemManager;
+	private StackLimitInfoBox stackInfoBox;
+	@Inject
+	private ClientThread clientThread;
 
 	private boolean bankWasOpenLastTick = false;
 	private boolean bankIsOpen = false;
@@ -65,20 +72,7 @@ public class ScrollBoxInfoPlugin extends Plugin
 	private final Map<ClueTier, Boolean> previousBankClueScrollState = new HashMap<>();
 	private final Map<ClueTier, Boolean> previousBankChallengeScrollState = new HashMap<>();
 	private final Map<ClueTier, Integer> previousTotalClueCounts = new HashMap<>();
-
-
-	@Inject
-	private InfoBoxManager infoBoxManager;
-	@Inject
-	private ItemManager itemManager;
-
-	private StackLimitInfoBox stackInfoBox;
-
-	@Inject
-	private ClientThread clientThread;
-
 	private final Map<ClueTier, StackLimitInfoBox> stackInfoBoxes = new HashMap<>();
-
 
 	private void checkAndDisplayInfobox(ClueTier tier, int count, int cap) {
 		if (!config.showFullStackInfobox() || !isTierInfoboxEnabled(tier)) {
@@ -127,7 +121,6 @@ public class ScrollBoxInfoPlugin extends Plugin
 	@Override
 	protected void startUp() throws Exception
 	{
-		log.info("Example started!");
 		clueCountStorage.loadBankCountsFromConfig();
 		overlayManager.add(clueWidgetItemOverlay);
 	}
@@ -135,7 +128,6 @@ public class ScrollBoxInfoPlugin extends Plugin
 	@Override
 	protected void shutDown() throws Exception
 	{
-		log.info("Example stopped!");
 		overlayManager.remove(clueWidgetItemOverlay);
 		clueWidgetItemOverlay.resetMarkedStacks();
 	}
@@ -170,9 +162,6 @@ public class ScrollBoxInfoPlugin extends Plugin
 			});
 		}
 	}
-
-
-
 
 	@Subscribe
 	public void onGameTick(GameTick tick)
@@ -303,8 +292,6 @@ public class ScrollBoxInfoPlugin extends Plugin
 				}
 			}
 
-
-
 			previousBankScrollBoxCount.put(tier, assumedBankedScrollBoxCount);
 			previousBankClueScrollState.put(tier, bankedClueScroll);
 			previousBankChallengeScrollState.put(tier, bankedChallengeScroll);
@@ -314,14 +301,6 @@ public class ScrollBoxInfoPlugin extends Plugin
 			previousTotalClueCounts.put(tier, clueCountStorage.getCount(tier));
 		}
 	}
-
-
-
-
-
-
-
-
 
 	@Provides
 	ScrollBoxInfoConfig provideConfig(ConfigManager configManager)

@@ -24,4 +24,3 @@ public class ClueCounts {
         return hasChallengeScroll;
     }
 }
-
