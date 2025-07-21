@@ -77,7 +77,7 @@ public interface ScrollBoxInfoConfig extends Config
 	@ConfigItem(
 			keyName = "showNextUnlock",
 			name = "Show next unlock",
-			description = "Display how many clue completions until next stack limit unlock",
+			description = "Display how many clue completions until next stack limit increase",
 			position = 4,
 			section = tooltipOverlay
 	)
