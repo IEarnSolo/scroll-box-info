@@ -5,19 +5,25 @@ import javax.inject.Inject;
 
 import com.scrollboxinfo.data.ClueCountStorage;
 import com.scrollboxinfo.overlay.ClueWidgetItemOverlay;
+import com.scrollboxinfo.overlay.StackLimitInfoBox;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
+import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.InventoryID;
+import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
+
+import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,17 +51,78 @@ public class ScrollBoxInfoPlugin extends Plugin
 	private OverlayManager overlayManager;
 	@Inject
 	private ConfigManager configManager;
+	@Inject
+	private ClueUtils clueUtils;
 
 	private boolean bankWasOpenLastTick = false;
 	private boolean bankIsOpen = false;
 	private boolean depositBoxIsOpen = false;
 	private boolean depositBoxWasOpenLastTick = false;
-	private final Map<ClueTier, Boolean> previousClueScrollInventoryState = new HashMap<>();
-	private final Map<ClueTier, Boolean> previousChallengeScrollInventoryState = new HashMap<>();
 	private final Map<ClueTier, Integer> previousInventoryScrollBoxCount = new HashMap<>();
+	private final Map<ClueTier, Boolean> previousInventoryClueScrollState = new HashMap<>();
+	private final Map<ClueTier, Boolean> previousInventoryChallengeScrollState = new HashMap<>();
 	private final Map<ClueTier, Integer> previousBankScrollBoxCount = new HashMap<>();
 	private final Map<ClueTier, Boolean> previousBankClueScrollState = new HashMap<>();
 	private final Map<ClueTier, Boolean> previousBankChallengeScrollState = new HashMap<>();
+	private final Map<ClueTier, Integer> previousTotalClueCounts = new HashMap<>();
+
+
+	@Inject
+	private InfoBoxManager infoBoxManager;
+	@Inject
+	private ItemManager itemManager;
+
+	private StackLimitInfoBox stackInfoBox;
+
+	@Inject
+	private ClientThread clientThread;
+
+	private final Map<ClueTier, StackLimitInfoBox> stackInfoBoxes = new HashMap<>();
+
+
+	private void checkAndDisplayInfobox(ClueTier tier, int count, int cap) {
+		if (!config.showFullStackInfobox() || !isTierInfoboxEnabled(tier)) {
+			StackLimitInfoBox box = stackInfoBoxes.remove(tier);
+			if (box != null) {
+				infoBoxManager.removeInfoBox(box);
+			}
+			return;
+		}
+
+		StackLimitInfoBox box = stackInfoBoxes.get(tier);
+
+		if (count >= cap) {
+			if (box == null) {
+				int clueItemId = clueUtils.getClueItemId(tier);
+				BufferedImage image = itemManager.getImage(clueItemId);
+				box = new StackLimitInfoBox(image, this, tier, count);
+				infoBoxManager.addInfoBox(box);
+				stackInfoBoxes.put(tier, box);
+			}
+		} else if (box != null) {
+			infoBoxManager.removeInfoBox(box);
+			stackInfoBoxes.remove(tier);
+		}
+	}
+
+	private boolean isTierInfoboxEnabled(ClueTier tier) {
+		switch (tier) {
+			case BEGINNER:
+				return config.showBeginnerInfobox();
+			case EASY:
+				return config.showEasyInfobox();
+			case MEDIUM:
+				return config.showMediumInfobox();
+			case HARD:
+				return config.showHardInfobox();
+			case ELITE:
+				return config.showEliteInfobox();
+			case MASTER:
+				return config.showMasterInfobox();
+			default:
+				return true;
+		}
+	}
 
 	@Override
 	protected void startUp() throws Exception
@@ -79,11 +146,33 @@ public class ScrollBoxInfoPlugin extends Plugin
 		if (!event.getGroup().equals("scrollboxinfo"))
 			return;
 
-		if (event.getKey().equals("highlightWhenCapped") && !config.highlightWhenCapped())
+		if (event.getKey().equals("markFullStack") && !config.markFullStack())
 		{
 			clueWidgetItemOverlay.resetMarkedStacks();
 		}
+
+		if (event.getKey().equals("showFullStackInfobox")
+				|| event.getKey().equals("showBeginnerInfobox")
+				|| event.getKey().equals("showEasyInfobox")
+				|| event.getKey().equals("showMediumInfobox")
+				|| event.getKey().equals("showHardInfobox")
+				|| event.getKey().equals("showEliteInfobox")
+				|| event.getKey().equals("showMasterInfobox"))
+		{
+			clientThread.invokeLater(() ->
+			{
+				for (ClueTier tier : ClueTier.values())
+				{
+					int count = clueCounter.getClueCounts(tier);
+					int cap = StackLimitCalculator.getStackLimit(tier, client);
+					checkAndDisplayInfobox(tier, count, cap);
+				}
+			});
+		}
 	}
+
+
+
 
 	@Subscribe
 	public void onGameTick(GameTick tick)
@@ -109,16 +198,20 @@ public class ScrollBoxInfoPlugin extends Plugin
 			ClueCounts inventory = clueCounter.getClueCounts(tier, inventoryContainer);
 			ClueCounts bank = clueCounter.getClueCounts(tier, bankContainer);
 
-			boolean clueEnteredInv = inventory.hasClueScroll() && !previousClueScrollInventoryState.getOrDefault(tier, false);
-			boolean clueLeftInv = !inventory.hasClueScroll() && previousClueScrollInventoryState.getOrDefault(tier, false);
-			boolean challengeEnteredInv = inventory.hasChallengeScroll() && !previousChallengeScrollInventoryState.getOrDefault(tier, false);
-			boolean challengeLeftInv = !inventory.hasChallengeScroll() && previousChallengeScrollInventoryState.getOrDefault(tier, false);
+			boolean clueEnteredInv = inventory.hasClueScroll() && !previousInventoryClueScrollState.getOrDefault(tier, false);
+			boolean clueLeftInv = !inventory.hasClueScroll() && previousInventoryClueScrollState.getOrDefault(tier, false);
+			boolean challengeEnteredInv = inventory.hasChallengeScroll() && !previousInventoryChallengeScrollState.getOrDefault(tier, false);
+			boolean challengeLeftInv = !inventory.hasChallengeScroll() && previousInventoryChallengeScrollState.getOrDefault(tier, false);
 			boolean scrollBoxEnteredInv = inventory.scrollBoxCount() > previousInventoryScrollBoxCount.getOrDefault(tier, 0);
 			boolean scrollBoxLeftInv = inventory.scrollBoxCount() < previousInventoryScrollBoxCount.getOrDefault(tier, 0);
 
 			boolean bankedClueScroll = previousBankClueScrollState.getOrDefault(tier, false);
 			boolean bankedChallengeScroll = previousBankChallengeScrollState.getOrDefault(tier, false);
 			int assumedBankedScrollBoxCount = previousBankScrollBoxCount.getOrDefault(tier, 0);
+			boolean hasScrollInBank = Boolean.TRUE.equals(
+					configManager.getRSProfileConfiguration("scrollboxinfo", "hasClueOrChallengeScrollInBank_" + tier.name(), Boolean.class)
+			);
+
 
 			int count = inventory.scrollBoxCount();
 			if (inventory.hasClueScroll())
@@ -138,6 +231,15 @@ public class ScrollBoxInfoPlugin extends Plugin
 				if (bankedChallengeScroll && bankedClueScroll)
 					bankCount -= 1;
 
+				if (bankedChallengeScroll || bankedClueScroll)
+				{
+					configManager.setRSProfileConfiguration("scrollboxinfo", "hasClueOrChallengeScrollInBank_" + tier.name(), true);
+				}
+				if (!bankedChallengeScroll && !bankedClueScroll)
+				{
+					configManager.setRSProfileConfiguration("scrollboxinfo", "hasClueOrChallengeScrollInBank_" + tier.name(), false);
+				}
+
 				clueCountStorage.setBankCount(tier, bankCount);
 			} else if (bankWasOpenLastTick || depositBoxIsOpen || depositBoxWasOpenLastTick) {
 				if (scrollBoxLeftInv)
@@ -156,6 +258,15 @@ public class ScrollBoxInfoPlugin extends Plugin
 					bankedChallengeScroll = true;
 				}
 
+				if (bankedChallengeScroll || bankedClueScroll)
+				{
+					configManager.setRSProfileConfiguration("scrollboxinfo", "hasClueOrChallengeScrollInBank_" + tier.name(), true);
+				}
+				if (!bankedChallengeScroll && !bankedClueScroll)
+				{
+					configManager.setRSProfileConfiguration("scrollboxinfo", "hasClueOrChallengeScrollInBank_" + tier.name(), false);
+				}
+
 				int assumedBankCount = assumedBankedScrollBoxCount;
 				if (bankedChallengeScroll || bankedClueScroll)
 					assumedBankCount += 1;
@@ -166,16 +277,41 @@ public class ScrollBoxInfoPlugin extends Plugin
 			count += clueCountStorage.getBankCount(tier);
 			if ((inventory.hasClueScroll() && inventory.hasChallengeScroll())
 				|| (inventory.hasClueScroll() && bankedChallengeScroll)
-				|| (inventory.hasChallengeScroll() && bankedClueScroll))
+				|| (inventory.hasChallengeScroll() && bankedClueScroll)
+				|| ((inventory.hasClueScroll() || inventory.hasChallengeScroll()) && hasScrollInBank))
 				count -= 1;
 			clueCountStorage.setCount(tier, count);
 
+			int cap = StackLimitCalculator.getStackLimit(tier, client);
+
+			if (config.showFullStackInfobox())
+				checkAndDisplayInfobox(tier, count, cap);
+
+			int previousTotalClueCount = previousTotalClueCounts.getOrDefault(tier, 0);
+			if (config.showChatMessage()) {
+				if (scrollBoxEnteredInv
+						&& (clueCounter.getClueCounts(tier) != previousTotalClueCount)
+						&& previousTotalClueCounts.containsKey(tier)
+						&& bankContainer == null
+						&& !bankWasOpenLastTick
+						&& !depositBoxIsOpen
+						&& !depositBoxWasOpenLastTick) {
+
+					String color = (count == cap) ? "ff0000" : "006600"; // red : green
+					String message = String.format("<col=%s>Current %s clue count: %d/%d", color, tier.name().toLowerCase(), count, cap);
+					client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
+				}
+			}
+
+
+
+			previousBankScrollBoxCount.put(tier, assumedBankedScrollBoxCount);
 			previousBankClueScrollState.put(tier, bankedClueScroll);
 			previousBankChallengeScrollState.put(tier, bankedChallengeScroll);
-			previousClueScrollInventoryState.put(tier, inventory.hasClueScroll());
-			previousChallengeScrollInventoryState.put(tier, inventory.hasChallengeScroll());
 			previousInventoryScrollBoxCount.put(tier, inventory.scrollBoxCount());
-			previousBankScrollBoxCount.put(tier, assumedBankedScrollBoxCount);
+			previousInventoryClueScrollState.put(tier, inventory.hasClueScroll());
+			previousInventoryChallengeScrollState.put(tier, inventory.hasChallengeScroll());
+			previousTotalClueCounts.put(tier, clueCountStorage.getCount(tier));
 		}
 	}
 

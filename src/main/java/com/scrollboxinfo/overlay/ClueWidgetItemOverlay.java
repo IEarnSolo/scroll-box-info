@@ -56,9 +56,9 @@ public class ClueWidgetItemOverlay extends WidgetItemOverlay
         int current = clueCounter.getClueCounts(tier);
         int cap = StackLimitCalculator.getStackLimit(tier, client);
 
-        if (isScrollBox(itemId) && config.highlightWhenCapped())
+        if (isScrollBox(itemId) && config.markFullStack())
         {
-            Color textColor = (config.highlightWhenCapped() && current >= cap) ? Color.RED : Color.YELLOW;
+            Color textColor = (config.markFullStack() && current >= cap) ? Color.RED : Color.YELLOW;
             widgetItem.getWidget().setItemQuantityMode(ItemQuantityMode.NEVER);
             renderQuantity(graphics, widgetItem.getCanvasBounds(), widgetItem.getQuantity(), textColor);
         }
@@ -66,7 +66,7 @@ public class ClueWidgetItemOverlay extends WidgetItemOverlay
         // Render tier label in bottom-left corner
         if (config.showTierLabel() && tier != null)
         {
-            String tierName = tier.name().charAt(0) + tier.name().substring(1).toLowerCase();
+            String tierName = ClueUtils.formatTierName(tier);
             if (tierName.equals("Beginner")) {
                 tierName = tierName.substring(0, tierName.length() - 2);
             }

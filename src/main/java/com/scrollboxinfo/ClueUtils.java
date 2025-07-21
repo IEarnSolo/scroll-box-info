@@ -86,5 +86,29 @@ public class ClueUtils
         }
     }
 
+    public int getClueItemId(ClueTier tier) {
+        switch (tier) {
+            case BEGINNER:
+                return ItemID.SCROLL_BOX_BEGINNER;
+            case EASY:
+                return ItemID.SCROLL_BOX_EASY;
+            case MEDIUM:
+                return ItemID.SCROLL_BOX_MEDIUM;
+            case HARD:
+                return ItemID.SCROLL_BOX_HARD;
+            case ELITE:
+                return ItemID.SCROLL_BOX_ELITE;
+            case MASTER:
+                return ItemID.SCROLL_BOX_MASTER;
+            default:
+                throw new IllegalStateException("Unexpected value: " + this);
+        }
+    }
+
+    public static String formatTierName(ClueTier tier) {
+        String name = tier.name().toLowerCase();
+        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    }
+
 }
 
