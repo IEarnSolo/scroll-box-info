@@ -9,6 +9,7 @@ import com.scrollboxinfo.overlay.StackLimitInfoBox;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.GameTick;
+import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.callback.ClientThread;
@@ -117,6 +118,27 @@ public class ScrollBoxInfoPlugin extends Plugin
 				return true;
 		}
 	}
+
+	private void sendTotalClueCountsChatMessage()
+	{
+		for (ClueTier tier : ClueTier.values())
+		{
+			int current = clueCounter.getClueCounts(tier);
+			int cap = StackLimitCalculator.getStackLimit(tier, client);
+
+			String color = (current == cap) ? "ff0000" : "006600"; // red : green
+			String message = String.format(
+					"<col=%s>%s clue count: %d/%d",
+					color,
+					ClueUtils.formatTierName(tier),
+					current,
+					cap
+			);
+
+			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
+		}
+	}
+
 
 	@Override
 	protected void startUp() throws Exception
@@ -301,6 +323,22 @@ public class ScrollBoxInfoPlugin extends Plugin
 			previousTotalClueCounts.put(tier, clueCountStorage.getCount(tier));
 		}
 	}
+
+	@Subscribe
+	public void onMenuEntryAdded(MenuEntryAdded event)
+	{
+		if (!config.showInventoryRightClickOption()) return;
+
+		if (event.getOption().equals("Inventory"))
+		{
+			client.getMenu().createMenuEntry(1)
+					.setOption("View clue counts")
+					.setType(MenuAction.RUNELITE)
+					.onClick(e -> sendTotalClueCountsChatMessage())
+					.setDeprioritized(true);
+		}
+	}
+
 
 	@Provides
 	ScrollBoxInfoConfig provideConfig(ConfigManager configManager)

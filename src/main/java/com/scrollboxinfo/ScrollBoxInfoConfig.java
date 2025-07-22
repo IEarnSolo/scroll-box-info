@@ -38,6 +38,13 @@ public interface ScrollBoxInfoConfig extends Config
 	)
 	String chatMessage = "chatMessage";
 
+	@ConfigSection(
+			name = "Menu option",
+			description = "Customize which menu options are displayed",
+			position = 40
+	)
+	String menuOption = "menuOption";
+
 	@ConfigItem(
 			keyName = "showBanked",
 			name = "Show banked",
@@ -266,6 +273,19 @@ public interface ScrollBoxInfoConfig extends Config
 	{
 		return true;
 	}
+
+	@ConfigItem(
+			keyName = "showInventoryRightClickOption",
+			name = "Show clue counts menu option",
+			description = "Show 'View clue counts' menu option in the inventory tab right-click menu",
+			position = 41,
+			section = menuOption
+	)
+	default boolean showInventoryRightClickOption()
+	{
+		return true;
+	}
+
 
 
 	// ===== Persistent Banked Clue Counts =====
