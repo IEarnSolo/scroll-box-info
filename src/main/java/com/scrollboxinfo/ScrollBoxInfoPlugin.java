@@ -31,7 +31,7 @@ import java.util.Map;
 @Slf4j
 @PluginDescriptor(
 	name = "Scroll Box Info",
-	description = "Keep track of how many clues you have, your current clue stack limit, and how many clues until next stack limit unlock",
+	description = "Keep track of how many clues you have, your current clue stack limit, and how many clues until next stack limit increase",
 	tags = {"scroll", "watson", "case"}
 )
 public class ScrollBoxInfoPlugin extends Plugin
