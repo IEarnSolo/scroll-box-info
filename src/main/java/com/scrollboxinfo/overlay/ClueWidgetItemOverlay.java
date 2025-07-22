@@ -8,7 +8,7 @@ import net.runelite.api.ItemID;
 import net.runelite.api.Point;
 import net.runelite.api.widgets.ItemQuantityMode;
 import net.runelite.api.widgets.Widget;
-import net.runelite.api.widgets.WidgetInfo;
+import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.WidgetItem;
 import net.runelite.client.ui.overlay.WidgetItemOverlay;
 import net.runelite.client.ui.overlay.components.TextComponent;
@@ -197,21 +197,22 @@ public class ClueWidgetItemOverlay extends WidgetItemOverlay
 
     public void resetMarkedStacks()
     {
-        List<WidgetInfo> containerWidgets = Arrays.asList(
-                WidgetInfo.INVENTORY,
-                WidgetInfo.BANK_ITEM_CONTAINER,
-                WidgetInfo.BANK_INVENTORY_ITEMS_CONTAINER,
-                WidgetInfo.BANK_EQUIPMENT_INVENTORY_ITEMS_CONTAINER,
-                WidgetInfo.DEPOSIT_BOX_INVENTORY_ITEMS_CONTAINER,
-                WidgetInfo.EQUIPMENT_INVENTORY_ITEMS_CONTAINER,
-                WidgetInfo.GRAND_EXCHANGE_INVENTORY_ITEMS_CONTAINER,
-                WidgetInfo.SHOP_INVENTORY_ITEMS_CONTAINER,
-                WidgetInfo.GUIDE_PRICES_INVENTORY_ITEMS_CONTAINER
-                );
+        List<Integer> containerComponentIds = Arrays.asList(
+                ComponentID.INVENTORY_CONTAINER,
+                ComponentID.BANK_ITEM_CONTAINER,
+                ComponentID.BANK_INVENTORY_ITEM_CONTAINER,
+                ComponentID.BANK_EQUIPMENT_PARENT,
+                ComponentID.DEPOSIT_BOX_INVENTORY_ITEM_CONTAINER,
+                ComponentID.EQUIPMENT_INVENTORY_ITEM_CONTAINER,
+                ComponentID.GRAND_EXCHANGE_INVENTORY_INVENTORY_ITEM_CONTAINER,
+                ComponentID.SHOP_INVENTORY_ITEM_CONTAINER,
+                ComponentID.GUIDE_PRICES_INVENTORY_ITEM_CONTAINER,
+                ComponentID.BANK_INVENTORY_EQUIPMENT_ITEM_CONTAINER
+        );
 
-        for (WidgetInfo containerInfo : containerWidgets)
+        for (int componentId : containerComponentIds)
         {
-            Widget container = client.getWidget(containerInfo);
+            Widget container = client.getWidget(componentId);
             if (container == null || container.getDynamicChildren() == null)
                 continue;
 
@@ -224,6 +225,7 @@ public class ClueWidgetItemOverlay extends WidgetItemOverlay
             }
         }
     }
+
 
     private static final Map<ClueTier, Integer> tierToVarpId = Map.of(
             ClueTier.BEGINNER, 2201,

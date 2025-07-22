@@ -10,8 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.MenuEntryAdded;
+import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.Widget;
-import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -191,10 +191,10 @@ public class ScrollBoxInfoPlugin extends Plugin
 		bankWasOpenLastTick = bankIsOpen;
 		depositBoxWasOpenLastTick = depositBoxIsOpen;
 
-		Widget bankWidget = client.getWidget(WidgetInfo.BANK_CONTAINER);
+		Widget bankWidget = client.getWidget(ComponentID.BANK_CONTAINER);
 		bankIsOpen = bankWidget != null && !bankWidget.isHidden();
 
-		Widget depositBoxWidget = client.getWidget(WidgetInfo.DEPOSIT_BOX_INVENTORY_ITEMS_CONTAINER);
+		Widget depositBoxWidget = client.getWidget(ComponentID.DEPOSIT_BOX_INVENTORY_ITEM_CONTAINER);
 		depositBoxIsOpen = depositBoxWidget != null && !depositBoxWidget.isHidden();
 	}
 
