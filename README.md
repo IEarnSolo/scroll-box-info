@@ -1,4 +1,4 @@
-# Scroll Box info
+# Scroll Box Info
 
 ### **Scroll Box Info** is a plugin that helps track various information about clue-related items. It provides customizable item tooltips, item overlays, infoboxes, chat messages, and menu options
 <hr/>
